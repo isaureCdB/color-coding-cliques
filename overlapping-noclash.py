@@ -166,7 +166,7 @@ def connection_1nucl(g, connect2nucl):
                 curr_connect1nucl.update(poses3)
             connect1nucl.extend([(pose1, pose3) for pose3 in curr_connect1nucl])
  
-     return np.array(connect1nucl)
+    return np.array(connect1nucl)
 
 g = np.load(args.connection_graph) #npz file from connect.py
 nfrag = g["nfrags"]
