@@ -1,4 +1,4 @@
-copyright 2014-2017 Sjoerd de Vries, TUM
+#copyright 2014-2017 Sjoerd de Vries, TUM
 
 import sys, numpy as np, weakref, itertools
 

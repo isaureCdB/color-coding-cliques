@@ -240,6 +240,4 @@ if args.txt is not None:
 
 if args.clashes is not None:
     print("%i clashes"%len(clashes))
-    ###for c in clashes:
-    ###    print(c)
     np.save(args.clashes, clashes)
