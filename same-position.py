@@ -33,28 +33,6 @@ def get_single_position_pairs(pools):
     all_pairs.update(pairs)
     return sorted(list(all_pairs))
 
-'''
-def BAKget_single_position_pairs(pools):
-    # Get list of pairs of poses non-connectable
-    # because only seen at one same position in chain
-    single_position_pairs = []
-    nfrag = len(pools)
-    #compare each pool to union of other pool  
-    for f in range(nfrag):
-        other_frag = [i for i in range(nfrag) if i != f]
-        other_pools = set()
-        for o in other_frag:
-            other_pools = other_pools.union(pools[o])
-        single = [p for p in pools[f] if p not in other_pools]
-        n = len(single)
-        for i in range(n):
-            for j in range(i+1,n):
-                p = (single[i], single[j])
-                if p not in single_position_pairs:
-                    single_position_pairs.append(p)
-    return single_position_pairs
-'''
-
 def get_pools(gaph):
     nfrag = graph["nfrags"]
     # get the pool of possible poses at each position in chain

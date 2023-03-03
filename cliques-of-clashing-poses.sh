@@ -1,7 +1,7 @@
 # !!! numbering from 0 in npy files, and from 1 in txt files !!!
 
 s="./color-coding-cliques" #scripts repo
-d=3.5
+d=1.5
 o=1.8
 nposes=100000
 motif=AAA

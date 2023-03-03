@@ -18,6 +18,7 @@ parser =argparse.ArgumentParser(description=__doc__,
 parser.add_argument('connection_graph', help="graph of poses connectivity, in npz")
 parser.add_argument('coor', help="atomic coordinates in numpy format")
 parser.add_argument('--atoms_n1', help="atom indices of nucl 1", nargs='+')
+parser.add_argument('--atoms_n2', help="atom indices of nucl 2", nargs='+')
 parser.add_argument('--atoms_n3', help="atom indices of nucl 3", nargs='+')
 parser.add_argument('--dist', help="clashing distance in A", default=3.5)
 parser.add_argument('--mem', help="mem usage (bytes) ", default=10**8)
@@ -175,70 +176,61 @@ def connection_1nucl(g):
  
     return np.array(connect1nucl)
 
+def connect_no_clash(connected, coor0, coor1):
+    
+    ## detect clashing pairs
+    clashes = np.array(detect_clashes(coor0, coor1, connected))
+    
+    ## remove poses clashing with themselves
+    mask = np.where(clashes[:, 0] != clashes[:, 1])
+    clashes = clashes[mask]
+
+    ## remove clashing pairs from connected pairs
+    nmax = max(clashes[:, 1].max(), connect1nucl[:, 1].max())
+    clashes_key = nmax * clashes[:, 0] + clashes[:, 1]
+    connected_key = nmax * connected[:, 0] + connected[:, 1]
+    noclash_key = np.setdiff1d(connected_key, clashes_key, assume_unique = False) 
+
+    noclash_col0 = noclash_key // nmax
+    noclash_col1 = noclash_key % nmax
+    
+    noclash = np.stack((noclash_col0, noclash_col1), axis=1)
+    return clashes, noclash
+
+
 g = np.load(args.connection_graph) #npz file from connect.py
 nfrag = g["nfrags"]
 
-# get pairs connected by 2 nucl
-connect2nucl = [ (i[0], i[1]) for n in range(nfrag-2) for i in g['interactions-%i'%n]]
-print("%i pairs connected by 2 nucl"%len(connect2nucl))
-
-# get pairs connected by 1 nucl
-connect1nucl = connection_1nucl(g)
-print("%i pairs connected by 1 nucl"%len(connect1nucl))
-
-## extract the connected poses.
-## convert each absolute index of a pose into a relative index among the connected pairs.
-n1_indices, n1_map = np.unique(connect1nucl[:,0], return_inverse=True)
-n2_indices, n2_map = np.unique(connect1nucl[:,1], return_inverse=True)
-connect1nucl_map = np.stack((n1_map,n2_map),axis=1)
-connect1nucl_map = connect1nucl
-
-## extract the coordinates of the terminal
-# nucleotides that might clash (frag1_n1 and frag3_n3).
-
+## extract coordinates of nucleotides
 coordinates = np.load(args.coor) 
 coor = coordinates.reshape((len(coordinates), -1, 3))
 
 at1 = [int(i)-1 for i in args.atoms_n1]
+at2 = [int(i)-1 for i in args.atoms_n2]
 at3 = [int(i)-1 for i in args.atoms_n3]
 
-#coor1 = coor[n1_indices][:, at1]
-#coor2 = coor[n2_indices][:, at3]
 coor1 = coor[:, at1]
-coor2 = coor[:, at3]
+coor3 = coor[:, at3]
+coor12 = coor[:, at1+at2]
+coor23 = coor[:, at3+at2]
 
-## detect clashes (frag1_n1 and frag3_n3).
-clashes_map = np.array(detect_clashes(coor1, coor2, connect1nucl_map))
+#### get pairs connected by 2 nucl and NOT clashing
+connect2nucl = [ (i[0], i[1]) for n in range(nfrag-2) for i in g['interactions-%i'%n]]
+print("%i pairs connected by 2 nucl"%len(connect2nucl))
+clash2nucl, noclash2nucl = connect_no_clash(connect2nucl, coor1, coor3)
+print("%i pairs connected by 2 nucl and not clashing"%len(noclash2nucl))
 
-## remove poses clashing with themselves
-print(clashes_map.shape)
-mask = np.where(clashes_map[:, 0] != clashes_map[:, 1])
-clashes_map_diff = clashes_map[mask]
-
-## re-map clashes
-clashes = np.stack((connect1nucl[clashes_map_diff[:,0], 0], connect1nucl[clashes_map_diff[:,1], 1]), axis=1)
-print("%i pairs connected by 1 nucl that clash"%len(clashes))
-
-## get pairs connected by 1 nucl and NOT clashing
-
-### np.setdiff1d needs 1D arrays
-### convert 2D arrays into 1D arrays by creating unique keys
-### ex: [[52, 23], [9, 66] => [52023, 90066]
-nmax = max(clashes_map[:, 1].max(), connect1nucl_map[:, 1].max())
-clashes_key = nmax * clashes_map[:, 0] + clashes_map[:, 1]
-
-connect1nucl_key = nmax * connect1nucl_map[:, 0] + connect1nucl_map[:, 1]
-
-#noclash_map_key = np.setdiff1d(connect1nucl_key, clashes_key, assume_unique = True) 
-noclash_map_key = np.setdiff1d(connect1nucl_key, clashes_key, assume_unique = False) 
-
-noclash_map_col0 = noclash_map_key // nmax
-noclash_map_col1 = noclash_map_key % nmax
- 
-noclash = np.stack((connect1nucl[noclash_map_col0, 0], connect1nucl[noclash_map_col1, 1]), axis=1)
+#### get pairs connected by 1 nucl and NOT clashing
+connect1nucl = connection_1nucl(g)
+print("%i pairs connected by 1 nucl"%len(connect1nucl))
+clash1nucl, noclash1nucl = connect_no_clash(connect1nucl, coor12, coor23)
+print("%i pairs connected by 1 nucl and not clashing"%len(noclash1nucl))
 
 # Merge connected non-clashing pairs
-connect = np.unique(np.concatenate((noclash, connect2nucl), axis=0), axis=0)
+connect = np.unique(np.concatenate((noclash2nucl, noclash1nucl), axis=0), axis=0)
+
+#Merge clashing pairs
+clashes = np.unique(np.concatenate((clash2nucl, clash1nucl), axis=0), axis=0)
 
 if args.npz is not None:
     np.savez(args.npz, connect)
