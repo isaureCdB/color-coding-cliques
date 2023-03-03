@@ -11,7 +11,7 @@ extract the list of unique connected poses
 parser =argparse.ArgumentParser(description=__doc__,
                         formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('connection_graph', help="graph of poses connectivity, in npz")
-parser.add_argument('--start', help="start indices")
+parser.add_argument('--offset', help="int offset for output indices")
 args = parser.parse_args()
 #######################################
 
@@ -25,10 +25,10 @@ for n in range(nfrags-1):
 inter = npz["interactions-%d"%(nfrags-2)]
 poses.update(inter[:,1])
 
-if args.start:
-    start = int(args.start)
+if args.offset:
+    offset = int(args.offset)
 
 for p in sorted(list(poses)):
-    if start:
-        p += start
+    if args.offset:
+        p += offset
     print(p)

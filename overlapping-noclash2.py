@@ -203,11 +203,10 @@ clashes_map = np.array(detect_clashes(coor1, coor2, connect1nucl))
 ## remove poses clashing with themselves
 print(clashes_map.shape)
 mask = np.where(clashes_map[:, 0] != clashes_map[:, 1])
-###clashes_map_diff = clashes_map[mask]
-clashes = clashes_map[mask]
+clashes_map_diff = clashes_map[mask]
 
 ## re-map clashes
-###clashes = np.stack((connect1nucl[clashes_map_diff[:,0], 0], connect1nucl[clashes_map_diff[:,1], 1]), axis=1)
+clashes = np.stack((connect1nucl[clashes_map_diff[:,0], 0], connect1nucl[clashes_map_diff[:,1], 1]), axis=1)
 print("%i pairs connected by 1 nucl that clash"%len(clashes))
 
 ## get pairs connected by 1 nucl and NOT clashing
@@ -216,8 +215,7 @@ print("%i pairs connected by 1 nucl that clash"%len(clashes))
 ### convert 2D arrays into 1D arrays by creating unique keys
 ### ex: [[52, 23], [9, 66] => [52023, 90066]
 nmax = max(clashes_map[:, 1].max(), connect1nucl[:, 1].max())
-###clashes_key = nmax * clashes_map[:, 0] + clashes_map[:, 1]
-clashes_key = nmax * clashes[:, 0] + clashes[:, 1]
+clashes_key = nmax * clashes_map[:, 0] + clashes_map[:, 1]
 connect1nucl_key = nmax * connect1nucl[:, 0] + connect1nucl[:, 1]
 
 noclash_map_key = np.setdiff1d(connect1nucl_key, clashes_key, assume_unique = True) 
@@ -225,8 +223,7 @@ noclash_map_key = np.setdiff1d(connect1nucl_key, clashes_key, assume_unique = Tr
 noclash_map_col0 = noclash_map_key // nmax
 noclash_map_col1 = noclash_map_key % nmax
  
-###noclash = np.stack((connect1nucl[noclash_map_col0, 0], connect1nucl[noclash_map_col1, 1]), axis=1)
-noclash = np.stack((noclash_map_col0, noclash_map_col1), axis=1)
+noclash = np.stack((connect1nucl[noclash_map_col0, 0], connect1nucl[noclash_map_col1, 1]), axis=1)
 
 # Merge connected non-clashing pairs
 connect = np.unique(np.concatenate((noclash, connect2nucl), axis=0), axis=0)
@@ -236,10 +233,6 @@ if args.npz is not None:
 
 if args.npy is not None:
     np.save(args.npy, connect)
-
-###
-np.save("noclash.npy", noclash)
-
 
 if args.txt is not None:
     f = open(args.txt, "w")

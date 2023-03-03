@@ -89,6 +89,7 @@ sys.stderr.flush()
 
 all_poses = np.unique(np.concatenate(pools[:-1]))
 all_nr_fwd = np.array([len(fwd[pose]) for pose in all_poses])
+assert len(all_nr_fwd)
 all_interactions = np.zeros((all_nr_fwd.sum(), 2), int)
 rep = np.repeat(all_poses, all_nr_fwd)
 all_interactions[:, 0] = rep

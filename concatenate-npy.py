@@ -14,13 +14,27 @@ parser.add_argument('--unique', action="store_true")
 args = parser.parse_args()
 #######################################
 
-merge_lists = [np.load(i) for i in args.inp if len(np.load(i)) > 0]
-merged = np.concatenate( merge_lists , axis=args.axis)
+merge_list = [np.load(i) for i in args.inp if len(np.load(i)) > 0]
+for m in merge_list:
+    print(np.shape(m))
 
+merged = np.concatenate(merge_list , axis=args.axis)
+print("merged")
+print(np.shape(merged))
+
+result = merged
 if args.sort:
-    merged = np.sort(merged, axis=0)
+    ind1 = np.argsort(merged[:, 1])
+    sorted = merged[ind1]
+    ind0 = np.argsort(sorted[:, 0], kind="stable")
+    sorted = sorted[ind0]
+    result = sorted
 
 if args.unique:
-    merged = np.unique(merged, axis=0)
+    unique = np.unique(result, axis=0)
+    result = unique
 
-np.save(args.outp, merged)
+    print("unique")
+    print(np.shape(unique))
+
+np.save(args.outp, result)

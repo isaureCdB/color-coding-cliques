@@ -39,10 +39,13 @@ coordinates_aa = np.load(args.coor)
 coor = coordinates_aa.reshape((len(coordinates_aa), -1, 3))
 
 # Add the symetric pairs to the list of pairs to ignore
-ignore_lists = [np.load(i) for i in args.ignore if len(np.load(i))>0]
-ignore_asym = np.concatenate( ignore_lists , axis=0)
-ignore_inverted = np.stack((ignore_asym[:,1], ignore_asym[:,0]), axis=1)
-ignore = np.concatenate( (ignore_asym, ignore_inverted) , axis=0)
+if args.ignore:
+    ignore_lists = [np.load(i) for i in args.ignore if len(np.load(i))>0]
+    ignore_asym = np.concatenate( ignore_lists , axis=0)
+    ignore_inverted = np.stack((ignore_asym[:,1], ignore_asym[:,0]), axis=1)
+    ignore = np.concatenate( (ignore_asym, ignore_inverted) , axis=0)
+else:
+    ignore = None
 
 trinucsize = coor.shape[1]
 MAX_CHUNK_3 = int(MAX_CHUNK_MEM / 8 / 3 / trinucsize**2)
@@ -129,14 +132,19 @@ def detect_clashes1(coor1, coor2, homo, pairs_to_ignore=None):
 
     # filter pairs based on ignore list
     if pairs_to_ignore is not None:
-        pairs_key = len(coor2_com) * pairs[:, 1] + pairs[:, 0]
+        assert pairs_to_ignore[:, 0].min() >= 0, pairs_to_ignore[:, 0].min()
+        assert pairs_to_ignore[:, 1].min() >= 0, pairs_to_ignore[:, 1].min()
+        assert pairs_to_ignore[:, 0].max() < len(coor1_com), (pairs_to_ignore[:, 0].max(), len(coor1_com))
+        assert pairs_to_ignore[:, 1].max() < len(coor2_com), (pairs_to_ignore[:, 1].max(), len(coor2_com))
+
+        pairs_key = len(coor1_com) * pairs[:, 1] + pairs[:, 0]
         pairs_key = np.sort(pairs_key)
-        ignore_key = len(coor2_com) * pairs_to_ignore[:, 1] + pairs_to_ignore[:, 0]
+        ignore_key = len(coor1_com) * pairs_to_ignore[:, 1] + pairs_to_ignore[:, 0]
         ignore_key = np.sort(ignore_key)
         pairs_to_keep = np.setdiff1d(pairs_key, ignore_key) #, assume_unique=True)
-        print("PAIRS BEFORE IGNORE", pairs, pairs.shape, len(coor2_com))
-        pairs_col1 = pairs_to_keep % len(coor2_com)
-        pairs_col2 = pairs_to_keep // len(coor2_com)
+        print("PAIRS BEFORE IGNORE", pairs, pairs.shape, len(coor1_com))
+        pairs_col1 = pairs_to_keep % len(coor1_com)
+        pairs_col2 = pairs_to_keep // len(coor1_com)
         pairs_old = pairs ###
         pairs = np.stack((pairs_col1, pairs_col2), axis=1)
         print("PAIRS AFTER IGNORE", pairs, pairs.shape)
@@ -164,7 +172,7 @@ def detect_clashes(coor, ignore=None):
             chunk_ignore1 = ignore.copy()
             column = chunk_ignore1[:,0]
             column -= n1
-            chunk_ignore1_keep = (column > 0) & (column < len(coor_chunk1))
+            chunk_ignore1_keep = (column >= 0) & (column < len(coor_chunk1))
             chunk_ignore1 = chunk_ignore1[chunk_ignore1_keep]
         for n2 in range(n1, len(coor), MAX_CHUNK_1):
             coor_chunk2 = coor[n2:n2+MAX_CHUNK_1]
@@ -173,9 +181,9 @@ def detect_clashes(coor, ignore=None):
                 chunk_ignore2 = chunk_ignore1.copy()
                 column = chunk_ignore2[:, 1]
                 column -= n2
-                chunk_ignore2_keep = (column > 0) & (column <= len(coor_chunk2))
+                chunk_ignore2_keep = (column >= 0) & (column < len(coor_chunk2))
                 chunk_ignore2 = chunk_ignore2[chunk_ignore2_keep]
-                pairs_to_ignore = chunk_ignore2 - 1
+                pairs_to_ignore = chunk_ignore2
             else:
                 pairs_to_ignore = None
                 
@@ -212,18 +220,22 @@ test = detect_clashes(coor0)
 print("Calculated clashes:", len(test), file=sys.stderr)
 
 clashes = detect_clashes(coor, ignore)
-clashes1 = np.array(clashes) + 1
+
+ind1 = np.argsort(clashes[:, 1])
+sorted = clashes[ind1]
+ind0 = np.argsort(sorted[:, 0], kind="stable")
+clashes = sorted[ind0]
 
 print(clashes[0])
-print(clashes1[0])
 
 if args.npz:
-    np.savez(args.npz, clashes1)
+    np.savez(args.npz, clashes)
 
 if args.npy:
-    np.save(args.npy, clashes1)
+    np.save(args.npy, clashes)
 
 if args.txt:
+    clashes1 = np.array(clashes) + 1
     f=open(args.txt,"w")
-    for p1, p2 in clashes: 
+    for p1, p2 in clashes1: 
         print("%i %i"%(p1,p2), file = f)

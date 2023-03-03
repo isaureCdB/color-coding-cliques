@@ -12,7 +12,10 @@ args = parser.parse_args()
 #######################################
 
 inp = np.load(args.inp)
+
+o=0
+if args.offset:
+    o = int(args.offset)
+
 for i in inp:
-    if args.offset:
-        i += args.offset
-    print(i)
+    print(i+o)
