@@ -195,10 +195,11 @@ def detect_clashes(coor, ignore=None):
                 if len(clashes_chunk2):
                     #print("CHUNK!!", clashes_chunk2.shape, file=sys.stderr)
                     clashes0.append(clashes_chunk2)
-    clashes = []
+    clashes = None
     if len(clashes0):
-        for chunk in clashes0:            
-            clashes.extend(chunk.tolist())
+        clashes = np.concatenate(clashes0, axis=0)
+        #for chunk in clashes0:            
+        #    clashes.extend(chunk.tolist())
     return clashes
 
 # positive control
