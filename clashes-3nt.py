@@ -62,6 +62,12 @@ coor_com_nuc = coor_per_nuc.mean(axis=2)
 dif_com_nuc = (coor_per_nuc - coor_com_nuc[:, :, None, :])
 nucleotide_radius = np.sqrt((dif_com_nuc**2).sum(axis=3).max())
 
+def sortnp(a): 
+    ind1 = np.argsort(a[:, 1]) 
+    s = a[ind1] 
+    ind0 = np.argsort(s[:, 0], kind="stable") 
+    return s[ind0] 
+
 def detect_clashes3(coor1, coor2, pairs):
     c1, c2 = coor1[pairs[:, 0]], coor2[pairs[:, 1]]  
     dif0 = c1[:, :, None, :] - c2[:, None, :, :]
@@ -222,10 +228,7 @@ print("Calculated clashes:", len(test), file=sys.stderr)
 
 clashes = detect_clashes(coor, ignore)
 
-ind1 = np.argsort(clashes[:, 1])
-sorted = clashes[ind1]
-ind0 = np.argsort(sorted[:, 0], kind="stable")
-clashes = sorted[ind0]
+clashes = sortnp(clashes)
 
 print(clashes[0])
 

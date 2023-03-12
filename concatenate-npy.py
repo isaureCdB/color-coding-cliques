@@ -14,6 +14,13 @@ parser.add_argument('--unique', action="store_true")
 args = parser.parse_args()
 #######################################
 
+def sortnp(a): 
+    ind1 = np.argsort(a[:, 1]) 
+    s = a[ind1] 
+    ind0 = np.argsort(s[:, 0], kind="stable") 
+    return s[ind0] 
+
+
 merge_list = [np.load(i) for i in args.inp if len(np.load(i)) > 0]
 for m in merge_list:
     print(np.shape(m))
@@ -24,11 +31,7 @@ print(np.shape(merged))
 
 result = merged
 if args.sort:
-    ind1 = np.argsort(merged[:, 1])
-    sorted = merged[ind1]
-    ind0 = np.argsort(sorted[:, 0], kind="stable")
-    sorted = sorted[ind0]
-    result = sorted
+    result = sortnp(merged)
 
 if args.unique:
     unique = np.unique(result, axis=0)
