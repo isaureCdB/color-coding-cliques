@@ -39,4 +39,4 @@ $COLCO/concatenate-npy.py $name-clash$d-incompatible.npy $name-samepos.npy $name
 $COLCO/npy2txt.py  $name-clash$d.npy --offset 1 > $name-clash$d.txt
 
 #create cliques of incompatible poses:
-python3 clique.py $name-clash$d-incompatible.npy --seed 6 --kt 1 --trials 10 --cliques 200 > $name-clash$d-cliques.txt
+python3 $COLCO/clique.py $name-clash$d-incompatible.npy --seed 6 --kt 1 --trials 10 --cliques 200 > $name-clash$d-cliques.txt
